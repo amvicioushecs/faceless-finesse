@@ -1,0 +1,65 @@
+# robots.txt for https://facelessfinesse.com (PLACEHOLDER domain)
+# Public marketing pages are open to search engines and AI assistants.
+# The Whop app and API are private.
+
+User-agent: GPTBot
+Allow: /
+Disallow: /api/
+Disallow: /experiences/
+Disallow: /dashboard/
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /api/
+Disallow: /experiences/
+Disallow: /dashboard/
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /api/
+Disallow: /experiences/
+Disallow: /dashboard/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /api/
+Disallow: /experiences/
+Disallow: /dashboard/
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /api/
+Disallow: /experiences/
+Disallow: /dashboard/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /api/
+Disallow: /experiences/
+Disallow: /dashboard/
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /api/
+Disallow: /experiences/
+Disallow: /dashboard/
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /api/
+Disallow: /experiences/
+Disallow: /dashboard/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /experiences/
+Disallow: /dashboard/
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /experiences/
+Disallow: /dashboard/
+
+Sitemap: https://facelessfinesse.com/sitemap.xml

@@ -1,0 +1,38 @@
+# Faceless Finesse
+
+> Faceless Finesse is an AI-guided web app that helps beginners and existing creators pick an easy-to-rank micro-niche, generate scripts, text/image/video posts, and auto-post to YouTube, Facebook and X on a 30-day calendar. It is SaaS / AI content creation software, available online worldwide, sold through Whop with a 3-day free trial.
+
+Faceless Finesse turns the faceless-content playbook (niche → offer → ideas → scripts → calendar → daily autopilot → monetization) into one guided flow with a single clear next step on every screen. TikTok and Instagram auto-posting are planned for later.
+
+## Services
+
+- [How it works](https://facelessfinesse.com/how-it-works): The guided flow from welcome screen and short quiz to niche, offer, scripts, posts, calendar, monetization map, autopilot and auto-posting.
+- [Features](https://facelessfinesse.com/features): AI niche and micro-niche finder with Ease-to-Rank score, offer builder, idea and 30-second script studio, text/text-on-image/image/video posts, 30-day calendar, daily autopilot, auto-posting.
+- [Start a faceless YouTube channel](https://facelessfinesse.com/guides/start-a-faceless-youtube-channel): Step-by-step guide for beginners.
+- [Pick a profitable niche](https://facelessfinesse.com/guides/pick-a-profitable-niche): How to find demand, weak competition and buyer intent, then narrow to a micro-niche.
+- [Auto-post to YouTube, Facebook and X](https://facelessfinesse.com/guides/auto-post-youtube-facebook-x): Connect accounts once and publish from a calendar, approve-first by default.
+
+## Pricing
+
+- [Pricing](https://facelessfinesse.com/pricing): Starter, Pro and Agency plans sold through Whop; every plan starts with a 3-day free trial. Prices: [PRICE] (to be published).
+
+## FAQ
+
+- [FAQ](https://facelessfinesse.com/faq): Direct answers on starting a faceless channel, picking a niche, making money with faceless content, auto-posting, the free trial and cancelling.
+- [Make money with faceless content](https://facelessfinesse.com/guides/make-money-with-faceless-content): Tie posts to one digital offer and move viewers from trust to leads to sales.
+- [Best AI tool for faceless content](https://facelessfinesse.com/guides/best-ai-tool-for-faceless-content): What to look for in a faceless content tool and how Faceless Finesse covers it.
+
+## About
+
+- [About](https://facelessfinesse.com/about): Who builds Faceless Finesse and why: simplicity for people starting or growing a faceless content business.
+
+## Contact
+
+- [Contact](https://facelessfinesse.com/contact): Support by email at support@facelessfinesse.com; online 24/7; no phone support.
+
+## Optional
+
+- [Faceless Finesse vs hiring a content team](https://facelessfinesse.com/compare/faceless-finesse-vs-hiring-a-content-team): What an AI-guided system covers compared with a hired team.
+- [Faceless Finesse vs ChatGPT + Canva](https://facelessfinesse.com/compare/faceless-finesse-vs-chatgpt-canva): One guided flow versus juggling separate tools manually.
+- [Full text for AI assistants](https://facelessfinesse.com/llms-full.txt): All key pages in one plain-text file.
+- [Whop store](https://whop.com/PLACEHOLDER): Checkout, free trial and member reviews.
