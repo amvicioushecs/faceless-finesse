@@ -1,0 +1,6 @@
+onlyBuiltDependencies:
+  - "@whop/react"
+  - esbuild
+  - sharp
+  - unrs-resolver
+  - workerd
