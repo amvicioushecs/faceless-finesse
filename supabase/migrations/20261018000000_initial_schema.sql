@@ -237,6 +237,9 @@ create table public.render_jobs (
 
 create table public.publish_jobs (
   id uuid primary key default gen_random_uuid(),
+  -- Post and social account must belong to this same workspace (brand), so an
+  -- Agency user can't publish one brand's post to another brand's account.
+  workspace_id uuid not null,
   post_id uuid not null,
   owner_id uuid not null references public.users (id) on delete cascade,
   social_account_id uuid not null,
@@ -305,10 +308,13 @@ alter table public.calendar_entries add constraint calendar_entries_post_owner_f
   foreign key (post_id, owner_id) references public.posts (id, owner_id) on delete cascade;
 alter table public.render_jobs add constraint render_jobs_post_owner_fkey
   foreign key (post_id, owner_id) references public.posts (id, owner_id) on delete cascade;
-alter table public.publish_jobs add constraint publish_jobs_post_owner_fkey
-  foreign key (post_id, owner_id) references public.posts (id, owner_id) on delete cascade;
-alter table public.publish_jobs add constraint publish_jobs_social_account_owner_fkey
-  foreign key (social_account_id, owner_id) references public.social_accounts (id, owner_id) on delete cascade;
+alter table public.posts add constraint posts_id_owner_workspace_key unique (id, owner_id, workspace_id);
+alter table public.social_accounts add constraint social_accounts_id_owner_workspace_key unique (id, owner_id, workspace_id);
+alter table public.publish_jobs add constraint publish_jobs_post_owner_workspace_fkey
+  foreign key (post_id, owner_id, workspace_id) references public.posts (id, owner_id, workspace_id) on delete cascade;
+alter table public.publish_jobs add constraint publish_jobs_social_account_owner_workspace_fkey
+  foreign key (social_account_id, owner_id, workspace_id)
+  references public.social_accounts (id, owner_id, workspace_id) on delete cascade;
 
 -- ---------------------------------------------------------------------------
 -- Indexes (database-schema.md)

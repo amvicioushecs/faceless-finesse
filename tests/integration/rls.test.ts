@@ -140,12 +140,16 @@ describe("RLS", () => {
   });
 
   it("users cannot move their own rows into someone else's workspace", async () => {
+    const wsA = await wsOf(A);
     const wsB = await wsOf(B);
+    await as(A, () =>
+      db.query(`insert into public.niches (workspace_id, owner_id, name, level) values ($1, $2, 'Movable', 'niche')`, [wsA, A]),
+    );
     await expect(
-      as(A, () => db.query(`update public.niches set workspace_id = $1 where name = 'Home workouts'`, [wsB])),
+      as(A, () => db.query(`update public.niches set workspace_id = $1 where name = 'Movable'`, [wsB])),
     ).rejects.toThrow(/row-level security|foreign key/);
     await expect(
-      as(A, () => db.query(`update public.niches set owner_id = $1 where name = 'Home workouts'`, [B])),
+      as(A, () => db.query(`update public.niches set owner_id = $1 where name = 'Movable'`, [B])),
     ).rejects.toThrow(/row-level security/);
   });
 
@@ -167,6 +171,27 @@ describe("RLS", () => {
         db.query(`insert into public.calendar_entries (post_id, owner_id, scheduled_at, platform) values ($1, $2, now(), 'x')`, [B_POST, A]),
       ),
     ).rejects.toThrow(/foreign key/);
+  });
+
+  it("publish jobs can't pair a post with another brand's social account (same owner)", async () => {
+    const ids = await as("service", async () => {
+      const ws2 = (await db.query<{ id: string }>(`insert into public.workspaces (owner_id, name) values ($1, 'A brand 2') returning id`, [A])).rows[0].id;
+      const ws1 = (await db.query<{ id: string }>(`select id from public.workspaces where owner_id = $1 and name = 'A brand'`, [A])).rows[0].id;
+      const post = (await db.query<{ id: string }>(`insert into public.posts (workspace_id, owner_id, format) values ($1, $2, 'text') returning id`, [ws1, A])).rows[0].id;
+      const acct1 = (await db.query<{ id: string }>(`select id from public.social_accounts where workspace_id = $1`, [ws1])).rows[0].id;
+      const acct2 = (await db.query<{ id: string }>(
+        `insert into public.social_accounts (workspace_id, owner_id, platform, external_id, access_token_enc) values ($1, $2, 'x', 'acct2', 'c') returning id`,
+        [ws2, A],
+      )).rows[0].id;
+      return { ws1, ws2, post, acct1, acct2 };
+    });
+    const insert = (ws: string, acct: string) =>
+      as("service", () =>
+        db.query(`insert into public.publish_jobs (workspace_id, post_id, owner_id, social_account_id) values ($1, $2, $3, $4)`, [ws, ids.post, A, acct]),
+      );
+    await expect(insert(ids.ws1, ids.acct2)).rejects.toThrow(/foreign key/);
+    await expect(insert(ids.ws2, ids.acct2)).rejects.toThrow(/foreign key/);
+    await expect(insert(ids.ws1, ids.acct1)).resolves.toBeDefined();
   });
 
   it("deleting a niche clears idea.niche_id but keeps the owner", async () => {
