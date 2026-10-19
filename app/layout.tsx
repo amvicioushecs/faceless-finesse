@@ -8,7 +8,8 @@ export const metadata: Metadata = {
   description: siteFacts.description,
   applicationName: siteFacts.name,
   openGraph: { siteName: siteFacts.name, type: "website" },
-  twitter: { card: "summary_large_image" },
+  // Switch to summary_large_image once an OG share image ships.
+  twitter: { card: "summary" },
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };

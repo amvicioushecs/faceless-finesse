@@ -18,8 +18,9 @@ export default function ContactPage() {
             {siteFacts.email}
           </a>
         </li>
-        <li>Support is by email; the app is available online 24/7. There is no phone support.</li>
-        <li>Billing and membership questions can also be handled through your Whop account.</li>
+        {siteFacts.contactLines.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
       </ul>
     </>
   );

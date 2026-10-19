@@ -10,7 +10,7 @@ export function PricingTable({ tiers = siteFacts.tiers }: { tiers?: readonly Tie
             {formatPrice(t)}
           </p>
           <p className="mt-2 text-3 text-gray-11">{t.summary}</p>
-          <p className="mt-4 text-2 text-gray-11">{siteFacts.trialDays}-day free trial through Whop.</p>
+          <p className="mt-4 text-2 text-gray-11">{siteFacts.trialLabel} through Whop.</p>
         </li>
       ))}
     </ul>

@@ -32,7 +32,7 @@ export function SiteHeader() {
   );
 }
 
-export function CtaLink({ label = `Start your ${siteFacts.trialDays}-day free trial` }: { label?: string }) {
+export function CtaLink({ label = `Start your ${siteFacts.trialLabel}` }: { label?: string }) {
   return (
     <a
       href={siteFacts.whopStoreUrl}

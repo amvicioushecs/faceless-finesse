@@ -11,10 +11,7 @@ export default function PricingPage() {
   return (
     <>
       <JsonLd data={[softwareApplicationJsonLd(), breadcrumbJsonLd([{ name: "Pricing", path: "/pricing" }])]} />
-      <PageHeading
-        title="Pricing"
-        lead={`All plans are sold through Whop and start with a ${siteFacts.trialDays}-day free trial. Cancel anytime from your Whop account.`}
-      />
+      <PageHeading title="Pricing" lead={siteFacts.pricingLead} />
       <PricingTable />
       <p className="mt-6 text-3 text-gray-11">{siteFacts.trialNote}</p>
       <div className="mt-8">

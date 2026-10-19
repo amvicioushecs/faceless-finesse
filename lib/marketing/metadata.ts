@@ -9,6 +9,6 @@ export function pageMetadata(path: string): Metadata {
     title: path === "/" ? { absolute: page.title } : page.title,
     description: page.description,
     alternates: { canonical: url },
-    openGraph: { title: page.title, description: page.description, url, siteName: siteFacts.name },
+    openGraph: { type: "website", title: page.title, description: page.description, url, siteName: siteFacts.name },
   };
 }

@@ -38,10 +38,29 @@ describe("site-facts", () => {
     );
   });
 
-  it("never contains placeholder price tokens or invented ratings", () => {
-    const text = JSON.stringify(siteFacts);
-    expect(text).not.toContain("[PRICE]");
-    expect(text.toLowerCase()).not.toMatch(/aggregaterating|testimonial|\d+,?\d*\+? (users|members|creators)/);
+  it("never contains placeholder price tokens, invented stats or ratings", () => {
+    const text = JSON.stringify(siteFacts).toLowerCase();
+    expect(text).not.toContain("[price]");
+    const inventedStats = [
+      /aggregaterating|testimonial|trusted by/,
+      /\d[\d,.]*\s*[km]?\+?\s*(users|members|creators|customers|subscribers|channels)/, // "10K+ users"
+      /\d(\.\d)?\s*(\/\s*5|stars?|★)/, // "4.8/5", "4.9 stars"
+      /\d+(\.\d+)?\s*%\s*(of|more|increase|growth|retention)/, // "92% retention"
+    ];
+    for (const re of inventedStats) expect(text, String(re)).not.toMatch(re);
+  });
+
+  it("derives every trial mention from trialDays", () => {
+    expect(siteFacts.trialLabel).toBe(`${siteFacts.trialDays}-day free trial`);
+    for (const s of [
+      siteFacts.pricingLead,
+      siteFacts.closingLine,
+      getPage("/pricing").description,
+      siteFacts.faq.find((f) => f.question === "Is there a free trial?")?.answer ?? "",
+    ]) {
+      expect(s).toContain(siteFacts.trialLabel);
+    }
+    expect(siteFacts.descriptionSentence).toBe(`${siteFacts.name} is an ${siteFacts.description.slice(3)}`);
   });
 
   it("formats unset and set prices", () => {

@@ -1,4 +1,4 @@
-import { absoluteUrl, type FaqEntry, siteFacts } from "./site-facts";
+import { absoluteUrl, type FaqEntry, isPlaceholder, siteFacts } from "./site-facts";
 
 type JsonLd = Record<string, unknown>;
 
@@ -27,10 +27,13 @@ export function organizationJsonLd(): JsonLd {
 }
 
 /**
- * SoftwareApplication. Offers are only emitted for tiers with a real price:
- * we never publish placeholder prices in structured data.
+ * SoftwareApplication. Offers are only emitted for tiers with a real price (we
+ * never publish placeholder prices), and the checkout URL only once the Whop
+ * store link is real. The trial is described in text: `eligibleDuration` would
+ * mean the offer itself is only valid for 3 days.
  */
 export function softwareApplicationJsonLd(): JsonLd {
+  const storeUrl = isPlaceholder(siteFacts.whopStoreUrl) ? undefined : siteFacts.whopStoreUrl;
   const offers = siteFacts.tiers
     .filter((t) => t.priceUsdMonthly !== null)
     .map((t) => ({
@@ -38,14 +41,9 @@ export function softwareApplicationJsonLd(): JsonLd {
       name: t.name,
       price: String(t.priceUsdMonthly),
       priceCurrency: siteFacts.currency,
-      url: siteFacts.whopStoreUrl,
+      description: `${t.summary} Billed monthly; starts with a ${siteFacts.trialLabel}.`,
+      ...(storeUrl ? { url: storeUrl } : {}),
       availability: "https://schema.org/InStock",
-      eligibleDuration: {
-        "@type": "QuantitativeValue",
-        value: siteFacts.trialDays,
-        unitCode: "DAY",
-        description: `${siteFacts.trialDays}-day free trial`,
-      },
     }));
   return {
     "@context": "https://schema.org",

@@ -8,11 +8,9 @@ import { siteFacts } from "@/lib/site-facts";
 describe("FaqList", () => {
   it("renders every question with its direct answer as plain HTML", () => {
     const { container } = render(<FaqList entries={siteFacts.faq} />);
-    const terms = container.querySelectorAll("dt");
-    expect(terms).toHaveLength(siteFacts.faq.length);
-    expect(screen.getByText("Is there a free trial?").nextElementSibling).toHaveTextContent(
-      "Yes, every plan starts with a 3-day free trial through Whop.",
-    );
+    const pairs = [...container.querySelectorAll("dt")].map((dt) => [dt.textContent, dt.nextElementSibling?.textContent]);
+    expect(pairs).toEqual(siteFacts.faq.map((e) => [e.question, e.answer]));
+    expect(screen.getByText("Is there a free trial?").nextElementSibling?.tagName).toBe("DD");
   });
 });
 

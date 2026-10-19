@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { buildLlmsFullTxt, buildLlmsTxt } from "@/lib/llms";
+import { buildLlmsFullTxt, buildLlmsTxt, pricesSummary } from "@/lib/llms";
 import { buildRobots, buildSitemap } from "@/lib/seo";
 import { publishedPages, siteFacts } from "@/lib/site-facts";
 
@@ -39,6 +39,16 @@ describe("llms.txt", () => {
   });
 });
 
+describe("prices line", () => {
+  it("lists only tiers with a real price", () => {
+    const tiers = siteFacts.tiers.map((t) => ({ ...t }));
+    expect(pricesSummary(tiers)).toBe("not published yet");
+    tiers[1].priceUsdMonthly = 49;
+    expect(pricesSummary(tiers)).toBe("Pro $49 per month");
+    expect(pricesSummary(tiers)).not.toContain("not published");
+  });
+});
+
 describe("llms-full.txt", () => {
   it("contains every FAQ question and answer and the contact facts", () => {
     const full = buildLlmsFullTxt();
@@ -69,7 +79,9 @@ describe("robots + sitemap", () => {
 
   it("lists only published pages with a lastModified date", () => {
     const map = buildSitemap();
-    expect(map).toHaveLength(publishedPages().length);
+    expect(map.map((e) => e.url)).toEqual(
+      publishedPages().map((p) => (p.path === "/" ? `${siteFacts.url}/` : siteFacts.url + p.path)),
+    );
     expect(map.every((e) => /^\d{4}-\d{2}-\d{2}$/.test(String(e.lastModified)))).toBe(true);
   });
 });

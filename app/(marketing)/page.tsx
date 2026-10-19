@@ -14,7 +14,7 @@ export default function HomePage() {
       <section className="py-8">
         <h1 className="text-9 font-bold text-gray-12">{siteFacts.name}</h1>
         <p className="mt-4 max-w-3xl text-5 text-gray-12">
-          {siteFacts.name} is {siteFacts.description.charAt(0).toLowerCase() + siteFacts.description.slice(1)}
+          {siteFacts.descriptionSentence}
         </p>
         <p className="mt-3 max-w-3xl text-4 text-gray-11">{siteFacts.tagline}</p>
         <div className="mt-6 flex flex-wrap items-center gap-4">
@@ -44,10 +44,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <p className="mt-10 text-4 text-gray-12">
-        Every screen ends with one clear next step. Every plan starts with a {siteFacts.trialDays}-day free trial
-        through Whop.
-      </p>
+      <p className="mt-10 text-4 text-gray-12">{siteFacts.closingLine}</p>
     </>
   );
 }

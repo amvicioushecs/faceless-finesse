@@ -35,10 +35,17 @@ export type PublicPage = {
   lastModified: string;
 };
 
+const NAME = "Faceless Finesse";
+const TRIAL_DAYS = 3;
+const TRIAL = `${TRIAL_DAYS}-day free trial`;
+const DESCRIPTION =
+  "An AI-guided web app that helps beginners and existing creators pick an easy-to-rank micro-niche, generate scripts, text/image/video posts, and auto-post to YouTube, Facebook and X on a 30-day calendar.";
+
 export const siteFacts = {
-  name: "Faceless Finesse",
-  description:
-    "An AI-guided web app that helps beginners and existing creators pick an easy-to-rank micro-niche, generate scripts, text/image/video posts, and auto-post to YouTube, Facebook and X on a 30-day calendar.",
+  name: NAME,
+  description: DESCRIPTION,
+  /** Sentence form: "Faceless Finesse is an AI-guided web app ..." (no runtime case tricks). */
+  descriptionSentence: `${NAME} is an AI-guided web app that helps beginners and existing creators pick an easy-to-rank micro-niche, generate scripts, text/image/video posts, and auto-post to YouTube, Facebook and X on a 30-day calendar.`,
   /** Sentence form used in the first paragraph of the home page and llms.txt. */
   tagline:
     "Faceless Finesse helps you build a faceless content business step by step, without showing your face and without stitching together a pile of tools.",
@@ -50,7 +57,18 @@ export const siteFacts = {
   email: "support@facelessfinesse.com",
   phone: null as string | null,
   hours: "Online 24/7; support by email",
-  trialDays: 3,
+  trialDays: TRIAL_DAYS,
+  /** "3-day free trial" */
+  trialLabel: TRIAL,
+  /** Home page closing line (also in llms-full.txt). */
+  closingLine: `Every screen ends with one clear next step. Every plan starts with a ${TRIAL} through Whop.`,
+  /** Pricing page lead (also in llms-full.txt). */
+  pricingLead: `All plans are sold through Whop and start with a ${TRIAL}. Cancel anytime from your Whop account.`,
+  /** Contact facts shown on /contact and in the llms files. */
+  contactLines: [
+    "Support is by email; the app is available online 24/7. There is no phone support.",
+    "Billing and membership questions can also be handled through your Whop account.",
+  ],
   currency: "USD",
   /** PLACEHOLDER: real Whop store URL. */
   whopStoreUrl: "https://whop.com/PLACEHOLDER",
@@ -227,7 +245,7 @@ export const siteFacts = {
       answer:
         "Yes. An AI-guided system can handle niche research, scripting, design, scheduling and posting while you review and approve. Faceless Finesse is designed to be that system for one person.",
     },
-    { question: "Is there a free trial?", answer: "Yes, every plan starts with a 3-day free trial through Whop." },
+    { question: "Is there a free trial?", answer: `Yes, every plan starts with a ${TRIAL} through Whop.` },
     {
       question: "Do I need to show my face?",
       answer:
@@ -300,7 +318,7 @@ export const siteFacts = {
       path: "/pricing",
       title: "Pricing",
       description:
-        "Starter, Pro and Agency plans sold through Whop; every plan starts with a 3-day free trial.",
+        `Starter, Pro and Agency plans sold through Whop; every plan starts with a ${TRIAL}.`,
       llmsSection: "Pricing",
       published: true,
       lastModified: "2026-10-18",
@@ -397,6 +415,11 @@ export function getPage(path: string): PublicPage {
   const page = siteFacts.pages.find((p) => p.path === path);
   if (!page) throw new Error(`Unknown public page: ${path}`);
   return page;
+}
+
+/** True for values still holding a PLACEHOLDER marker (never publish those as links). */
+export function isPlaceholder(value: string | null | undefined): boolean {
+  return !value || value.includes("PLACEHOLDER");
 }
 
 export function formatPrice(tier: Tier): string {

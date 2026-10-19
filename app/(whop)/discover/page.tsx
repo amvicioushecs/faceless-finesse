@@ -11,7 +11,7 @@ export default function DiscoverPage() {
           <li key={w}>{w}</li>
         ))}
       </ul>
-      <p className="text-3 text-gray-11">Every plan starts with a {siteFacts.trialDays}-day free trial.</p>
+      <p className="text-3 text-gray-11">{siteFacts.closingLine}</p>
     </div>
   );
 }
