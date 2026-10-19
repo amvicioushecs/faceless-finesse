@@ -6,9 +6,8 @@ const noindex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  images: {
-    remotePatterns: [{ hostname: "**" }],
-  },
+  // No remote image patterns: add exact hosts (e.g. the R2 media domain) when needed,
+  // so /_next/image can't be used as an open proxy.
   async headers() {
     // Whop app surfaces and the API are private (docs/plan/aeo.md §8).
     return [
