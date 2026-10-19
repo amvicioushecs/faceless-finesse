@@ -29,11 +29,30 @@ describe("env validation", () => {
   });
 
   it("requireServerEnv lists every missing variable at once", () => {
-    const env = parseServerEnv({ WHOP_API_KEY: "key" });
-    expect(requireServerEnv(["WHOP_API_KEY"], env)).toEqual({ WHOP_API_KEY: "key" });
-    expect(() => requireServerEnv(["WHOP_API_KEY", "TREG_API_KEY", "GEMINI_API_KEY"], env)).toThrow(
+    const source = { WHOP_API_KEY: "key" };
+    expect(requireServerEnv(["WHOP_API_KEY"], source)).toEqual({ WHOP_API_KEY: "key" });
+    expect(() => requireServerEnv(["WHOP_API_KEY", "TREG_API_KEY", "GEMINI_API_KEY"], source)).toThrow(
       "Missing required environment variables: TREG_API_KEY, GEMINI_API_KEY",
     );
+  });
+
+  it("requireServerEnv validates only the requested keys", () => {
+    const source = { WHOP_API_KEY: "key", NEXT_PUBLIC_WHOP_APP_ID: "app_abc", CRON_SECRET: "short" };
+    expect(requireServerEnv(["WHOP_API_KEY", "NEXT_PUBLIC_WHOP_APP_ID"], source)).toEqual({
+      WHOP_API_KEY: "key",
+      NEXT_PUBLIC_WHOP_APP_ID: "app_abc",
+    });
+    expect(() => requireServerEnv(["CRON_SECRET"], source)).toThrow(/CRON_SECRET/);
+    expect(() => requireServerEnv(["NEXT_PUBLIC_WHOP_APP_ID"], { NEXT_PUBLIC_WHOP_APP_ID: "biz_1" })).toThrow(EnvError);
+  });
+
+  it("accepts bare and display-name sender addresses for EMAIL_FROM", () => {
+    expect(parseServerEnv({ EMAIL_FROM: "support@example.com" }).EMAIL_FROM).toBe("support@example.com");
+    expect(parseServerEnv({ EMAIL_FROM: "Faceless Finesse <support@example.com>" }).EMAIL_FROM).toBe(
+      "Faceless Finesse <support@example.com>",
+    );
+    expect(() => parseServerEnv({ EMAIL_FROM: "not-an-email" })).toThrow(/EMAIL_FROM/);
+    expect(() => parseServerEnv({ EMAIL_FROM: "Name <nope>" })).toThrow(/EMAIL_FROM/);
   });
 
   it(".env.example documents exactly the variables in the schema", () => {

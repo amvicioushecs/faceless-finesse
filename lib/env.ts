@@ -67,7 +67,16 @@ export const serverEnvSchema = publicEnvSchema.extend({
   CRON_SECRET: z.string().trim().min(32, "must be at least 32 characters").optional(),
   // Email + monitoring
   RESEND_API_KEY: optionalString,
-  EMAIL_FROM: z.email().optional(),
+  /** Bare address or display-name form: `Faceless Finesse <support@example.com>`. */
+  EMAIL_FROM: z
+    .string()
+    .trim()
+    .refine((v) => {
+      const m = /^(?:[^<>]+<([^<>\s]+)>|([^<>\s]+))$/.exec(v);
+      const addr = m?.[1] ?? m?.[2];
+      return !!addr && z.email().safeParse(addr).success;
+    }, "must be an email address or `Name <address>`")
+    .optional(),
   SENTRY_DSN: optionalUrl,
 });
 
@@ -99,26 +108,31 @@ export function parseServerEnv(source: EnvSource = process.env): ServerEnv {
 }
 
 /**
- * Public env. `NEXT_PUBLIC_*` vars must be referenced literally so Next.js can
- * inline them into the browser bundle.
+ * Default env source. `NEXT_PUBLIC_*` vars are referenced literally so Next.js
+ * can inline them at build time (dynamic `process.env[key]` reads are not
+ * inlined, and on Workers they would otherwise be missing at runtime).
  */
+function defaultSource(): EnvSource {
+  return {
+    ...process.env,
+    NEXT_PUBLIC_WHOP_APP_ID: process.env.NEXT_PUBLIC_WHOP_APP_ID,
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  };
+}
+
+/** Public env (safe for client components). */
 export function parsePublicEnv(): PublicEnv {
-  return publicEnvSchema.parse(
-    clean({
-      NEXT_PUBLIC_WHOP_APP_ID: process.env.NEXT_PUBLIC_WHOP_APP_ID,
-      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-      NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
-    }),
-  );
+  return publicEnvSchema.parse(clean(defaultSource()));
 }
 
 let cached: ServerEnv | undefined;
 
-/** Validated server env (cached). Server-only: never import into client components. */
+/** Fully validated server env (cached). Server-only: never import into client components. */
 export function getServerEnv(): ServerEnv {
-  cached ??= parseServerEnv();
+  cached ??= parseServerEnv(defaultSource());
   return cached;
 }
 
@@ -128,19 +142,27 @@ export function resetEnvCache(): void {
 }
 
 /**
- * Returns the requested variables, throwing one clear error listing every
- * missing name. Use at the point a secret is actually needed.
+ * Returns the requested variables, validating only those keys (so a malformed,
+ * unrelated optional variable can't take down this code path). Throws one clear
+ * error listing every missing or invalid name. Use where a secret is needed.
  */
 export function requireServerEnv<K extends ServerEnvKey>(
   keys: readonly K[],
-  env: ServerEnv = getServerEnv(),
+  source: EnvSource = defaultSource(),
 ): { [P in K]: NonNullable<ServerEnv[P]> } {
-  const missing = keys.filter((k) => env[k] === undefined || env[k] === null);
+  const mask = Object.fromEntries(keys.map((k) => [k, true])) as Record<K, true>;
+  const result = serverEnvSchema.pick(mask).safeParse(clean(source));
+  if (!result.success) {
+    const issues = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
+    throw new EnvError(`Invalid environment variables:\n  ${issues.join("\n  ")}`, issues);
+  }
+  const values = result.data as Partial<ServerEnv>;
+  const missing = keys.filter((k) => values[k] === undefined || values[k] === null);
   if (missing.length) {
     throw new EnvError(
       `Missing required environment variables: ${missing.join(", ")}. See .env.example.`,
       missing.map((m) => `${m}: required`),
     );
   }
-  return Object.fromEntries(keys.map((k) => [k, env[k]])) as { [P in K]: NonNullable<ServerEnv[P]> };
+  return values as { [P in K]: NonNullable<ServerEnv[P]> };
 }
