@@ -35,10 +35,10 @@ export async function handleWhopWebhook(request: Request, deps: WhopWebhookDeps)
   try {
     event = verifier.webhooks.unwrap(body, { headers: Object.fromEntries(request.headers) }) as WhopWebhookEvent;
   } catch (err) {
-    // Log the reason (never the secret or body) so a wrong/mis-encoded secret is visible.
+    // Log the error type only: messages (e.g. JSON.parse) can echo body data.
     console.warn("[whop webhook] signature verification failed", {
       requestId,
-      reason: err instanceof Error ? err.message : String(err),
+      reason: err instanceof Error ? err.name : "unknown",
       hasSignature: request.headers.has("webhook-signature"),
     });
     return apiError(401, "invalid_signature", "Webhook signature verification failed", null, requestId);

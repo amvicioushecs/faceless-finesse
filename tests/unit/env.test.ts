@@ -46,6 +46,10 @@ describe("env validation", () => {
     expect(() => requireServerEnv(["NEXT_PUBLIC_WHOP_APP_ID"], { NEXT_PUBLIC_WHOP_APP_ID: "biz_1" })).toThrow(EnvError);
   });
 
+  it("requireServerEnv applies schema defaults", () => {
+    expect(requireServerEnv(["NODE_ENV", "TREG_DAILY_CAP_USD"], {})).toEqual({ NODE_ENV: "development", TREG_DAILY_CAP_USD: 5 });
+  });
+
   it("requireServerEnv reports missing and invalid keys together", () => {
     try {
       requireServerEnv(["WHOP_API_KEY", "CRON_SECRET"], { CRON_SECRET: "short" });

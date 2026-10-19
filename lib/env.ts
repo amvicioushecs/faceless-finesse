@@ -150,13 +150,18 @@ export function requireServerEnv<K extends ServerEnvKey>(
   keys: readonly K[],
   source: EnvSource = defaultSource(),
 ): { [P in K]: NonNullable<ServerEnv[P]> } {
-  const mask = Object.fromEntries(keys.map((k) => [k, true])) as { [P in ServerEnvKey]?: true };
   const cleaned = clean(source);
-  const result = serverEnvSchema.pick(mask).safeParse(cleaned);
-  const invalid = result.success ? [] : result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
-  const values = (result.success ? result.data : {}) as Partial<ServerEnv>;
-  // Report missing and invalid keys together so one fix-and-retry is enough.
-  const missing = keys.filter((k) => cleaned[k] === undefined || (result.success && (values[k] === undefined || values[k] === null)));
+  const shape = serverEnvSchema.shape as Record<ServerEnvKey, z.ZodType>;
+  const values: Partial<Record<ServerEnvKey, unknown>> = {};
+  const missing: K[] = [];
+  const invalid: string[] = [];
+  // Per key: schema defaults apply, and missing + invalid are reported together.
+  for (const k of keys) {
+    const r = shape[k].safeParse(cleaned[k]);
+    if (!r.success) invalid.push(...r.error.issues.map((i) => `${k}: ${i.message}`));
+    else if (r.data === undefined || r.data === null) missing.push(k);
+    else values[k] = r.data;
+  }
   if (missing.length || invalid.length) {
     const parts = [
       ...(missing.length ? [`Missing required environment variables: ${missing.join(", ")}.`] : []),
