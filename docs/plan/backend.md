@@ -51,7 +51,7 @@ flowchart LR
 | `monetization_plans` | id, workspace_id, steps jsonb, ctas jsonb | |
 | `autopilot_settings` | workspace_id, run_time_local, timezone, mode (approve_first/auto_publish), formats[], enabled | |
 | `social_accounts` | id, workspace_id, platform, external_id, display_name, access_token_enc, refresh_token_enc, expires_at, scopes | Tokens encrypted |
-| `publish_jobs` | id, post_id, social_account_id, status, external_post_id, error, attempts | |
+| `publish_jobs` | id, workspace_id, post_id, social_account_id, status, external_post_id, error, attempts | |
 | `render_jobs` | id, post_id, kind, status, output_path, cost_micro | |
 | `usage_events` | id, user_id, provider, kind, units, cost_micro, created_at | AI + treg + render cost ledger (server-insert only) |
 | `usage_budgets` | user_id, period, limit_micro, used_micro | Per-plan caps, reserved atomically |

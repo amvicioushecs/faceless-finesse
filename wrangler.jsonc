@@ -1,0 +1,63 @@
+// Cloudflare Workers config for Faceless Finesse (docs/plan/devops.md).
+// NOTHING here has been created in Cloudflare yet. IDs/names marked PLACEHOLDER
+// must be replaced after `wrangler r2 bucket create`, `wrangler kv namespace create`,
+// `wrangler queues create`, etc. Secrets are set with `wrangler secret put <NAME>`,
+// never in this file.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "faceless-finesse",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "faceless-finesse"
+    }
+  ],
+  "observability": { "enabled": true },
+  "vars": {
+    "NEXT_PUBLIC_APP_URL": "https://facelessfinesse.com" // PLACEHOLDER domain
+  },
+
+  // R2: brand assets + rendered media (private; signed URLs).
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_BUCKET",
+      "bucket_name": "faceless-finesse-media" // PLACEHOLDER: create before deploy
+    }
+    // Next.js incremental cache (enable together with open-next.config.ts):
+    // { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "faceless-finesse-next-cache" }
+  ],
+
+  // KV: Whop access cache, rate-limit counters, read-heavy caches.
+  "kv_namespaces": [
+    {
+      "binding": "CACHE_KV",
+      "id": "PLACEHOLDER_KV_NAMESPACE_ID"
+    }
+  ]
+
+  // Queues (stage 4+). Consumers live in a separate jobs Worker, because the
+  // OpenNext worker only exports a fetch handler.
+  // "queues": {
+  //   "producers": [
+  //     { "binding": "AUTOPILOT_QUEUE", "queue": "ff-autopilot" },
+  //     { "binding": "RENDER_QUEUE", "queue": "ff-render" },
+  //     { "binding": "PUBLISH_QUEUE", "queue": "ff-publish" }
+  //   ]
+  // },
+
+  // Cron Triggers (stage 6): autopilot every 15 minutes, in the jobs Worker.
+  // "triggers": { "crons": ["*/15 * * * *"] },
+
+  // Workers AI (FLUX.1 schnell) (stage 4).
+  // "ai": { "binding": "AI" },
+
+  // Rate limiting (stage 2).
+  // "ratelimits": [{ "name": "AI_RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } }]
+}

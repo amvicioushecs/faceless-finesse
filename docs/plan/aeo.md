@@ -127,11 +127,13 @@ Generated from `site-facts.ts` and injected via the Next.js Metadata API / `<scr
   "description": "An AI-guided web app that helps beginners and existing creators pick an easy-to-rank micro-niche, generate scripts, text/image/video posts, and auto-post to YouTube, Facebook and X on a 30-day calendar.",
   "featureList": ["AI niche and micro-niche finder with Ease-to-Rank score", "Offer builder", "Ideas and 30-second script studio", "Text, text-on-image, image and video posts", "30-day content calendar", "Daily autopilot", "Auto-posting to YouTube, Facebook Pages and X"],
   "offers": [
-    { "@type": "Offer", "name": "Starter", "price": "[PRICE]", "priceCurrency": "USD", "url": "https://whop.com/PLACEHOLDER", "availability": "https://schema.org/InStock",
-      "eligibleDuration": { "@type": "QuantitativeValue", "value": 3, "unitCode": "DAY", "description": "3-day free trial" } }
+    { "@type": "Offer", "name": "Starter", "price": "29", "priceCurrency": "USD",
+      "description": "The full guided flow for one brand. Billed monthly; starts with a 3-day free trial.",
+      "url": "https://whop.com/<real-store>", "availability": "https://schema.org/InStock" }
   ]
 }
 ```
+Implementation rules (`lib/json-ld.ts`): an Offer is emitted only for tiers with a real price; `url` only once the Whop store link is real; the trial is stated in `description` (not `eligibleDuration`, which would mean the offer itself expires after 3 days). The `29` above is illustrative only.
 Do **not** add `aggregateRating` or `review` until real reviews exist on-site (and never copy Whop ratings you can't display).
 
 **FAQPage** (`/faq`)
