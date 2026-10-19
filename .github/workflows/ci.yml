@@ -42,17 +42,16 @@ jobs:
       - name: Unit, component and RLS tests
         run: pnpm test
 
-      - name: Build (Next.js)
-        run: pnpm build
+      # OpenNext runs `next build` itself, so one build serves both the Workers
+      # bundle and the `next start` server used by the E2E smoke tests.
+      - name: Build (Next.js + OpenNext for Cloudflare Workers)
+        run: pnpm cf:build
 
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
       - name: E2E smoke (production build)
         run: pnpm test:e2e
-
-      - name: Build for Cloudflare Workers (OpenNext)
-        run: pnpm cf:build
 
       - name: Upload Playwright report
         if: failure()

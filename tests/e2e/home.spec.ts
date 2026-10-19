@@ -34,8 +34,23 @@ test("AI discoverability files are served", async ({ request }) => {
   expect(await sitemap.text()).toContain("https://facelessfinesse.com/pricing");
 });
 
-test("Whop app paths are noindex and gated outside Whop", async ({ request }) => {
-  const res = await request.get("/experiences/exp_test");
-  expect(res.headers()["x-robots-tag"]).toContain("noindex");
-  expect(await res.text()).toMatch(/Open Faceless Finesse inside Whop|App not configured yet/);
+test("Whop app and API paths are noindex", async ({ request }) => {
+  for (const path of ["/experiences/exp_test", "/dashboard/biz_test", "/discover", "/api/health"]) {
+    const res = await request.get(path);
+    expect(res.headers()["x-robots-tag"], path).toContain("noindex");
+  }
+});
+
+test("Whop app pages are gated outside Whop", async ({ request }) => {
+  for (const path of ["/experiences/exp_test", "/dashboard/biz_test"]) {
+    const html = await (await request.get(path)).text();
+    expect(html, path).toMatch(/Open Faceless Finesse inside Whop|We&#x27;ll be right back|We'll be right back|App not configured yet/);
+  }
+});
+
+test("Whop webhook rejects unconfigured or unsigned deliveries without a 2xx", async ({ request }) => {
+  const res = await request.post("/api/v1/webhooks/whop", { data: "{}" });
+  expect([401, 503]).toContain(res.status());
+  const body = await res.json();
+  expect(body.error).toMatchObject({ code: expect.any(String), details: null, requestId: expect.stringMatching(/^req_/) });
 });
