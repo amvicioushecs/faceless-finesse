@@ -150,7 +150,7 @@ export function requireServerEnv<K extends ServerEnvKey>(
   keys: readonly K[],
   source: EnvSource = defaultSource(),
 ): { [P in K]: NonNullable<ServerEnv[P]> } {
-  const mask = Object.fromEntries(keys.map((k) => [k, true])) as Record<K, true>;
+  const mask = Object.fromEntries(keys.map((k) => [k, true])) as { [P in ServerEnvKey]?: true };
   const result = serverEnvSchema.pick(mask).safeParse(clean(source));
   if (!result.success) {
     const issues = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
