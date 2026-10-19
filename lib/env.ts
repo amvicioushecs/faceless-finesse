@@ -151,18 +151,18 @@ export function requireServerEnv<K extends ServerEnvKey>(
   source: EnvSource = defaultSource(),
 ): { [P in K]: NonNullable<ServerEnv[P]> } {
   const mask = Object.fromEntries(keys.map((k) => [k, true])) as { [P in ServerEnvKey]?: true };
-  const result = serverEnvSchema.pick(mask).safeParse(clean(source));
-  if (!result.success) {
-    const issues = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
-    throw new EnvError(`Invalid environment variables:\n  ${issues.join("\n  ")}`, issues);
-  }
-  const values = result.data as Partial<ServerEnv>;
-  const missing = keys.filter((k) => values[k] === undefined || values[k] === null);
-  if (missing.length) {
-    throw new EnvError(
-      `Missing required environment variables: ${missing.join(", ")}. See .env.example.`,
-      missing.map((m) => `${m}: required`),
-    );
+  const cleaned = clean(source);
+  const result = serverEnvSchema.pick(mask).safeParse(cleaned);
+  const invalid = result.success ? [] : result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
+  const values = (result.success ? result.data : {}) as Partial<ServerEnv>;
+  // Report missing and invalid keys together so one fix-and-retry is enough.
+  const missing = keys.filter((k) => cleaned[k] === undefined || (result.success && (values[k] === undefined || values[k] === null)));
+  if (missing.length || invalid.length) {
+    const parts = [
+      ...(missing.length ? [`Missing required environment variables: ${missing.join(", ")}.`] : []),
+      ...(invalid.length ? [`Invalid environment variables:\n  ${invalid.join("\n  ")}`] : []),
+    ];
+    throw new EnvError(`${parts.join(" ")} See .env.example.`, [...missing.map((m) => `${m}: required`), ...invalid]);
   }
   return values as { [P in K]: NonNullable<ServerEnv[P]> };
 }

@@ -42,7 +42,11 @@ export function ChoosePlanButton({ planId, storeUrl }: { planId: string | null; 
       <Button variant="classic" size="4" onClick={onClick} disabled={busy}>
         Choose a plan
       </Button>
-      {error ? <p className="text-2 text-red-11">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="text-2 text-red-11">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

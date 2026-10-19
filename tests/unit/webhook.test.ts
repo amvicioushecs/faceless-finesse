@@ -1,8 +1,8 @@
 import { Webhook } from "standardwebhooks";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { EnvError, requireServerEnv } from "@/lib/env";
 import { handleWhopWebhook, type WhopWebhookDeps } from "@/lib/webhooks/whop";
-import { createWebhookVerifier } from "@/lib/whop-sdk";
+import { createWebhookVerifier, whopWebhookVerifier } from "@/lib/whop-sdk";
 
 const SECRET = "ws_test_secret_value_1234567890";
 
@@ -42,6 +42,11 @@ async function errorCode(res: Response) {
   return body.error.code;
 }
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+});
+
 describe("Whop webhook handler", () => {
   it("returns 503 not_configured when the secret is missing (not 401)", async () => {
     const { d, onEvent } = deps({ getVerifier: () => requireServerEnv(["WHOP_WEBHOOK_SECRET"], {}) as never });
@@ -51,12 +56,26 @@ describe("Whop webhook handler", () => {
     expect(onEvent).not.toHaveBeenCalled();
   });
 
-  it("still verifies signatures when the API key/app ID are absent", async () => {
-    // The verifier only needs the webhook secret.
-    expect(() => requireServerEnv(["WHOP_API_KEY"], {})).toThrow(EnvError);
-    const { d } = deps();
+  it("the production verifier works with only WHOP_WEBHOOK_SECRET set", async () => {
+    vi.stubEnv("WHOP_WEBHOOK_SECRET", SECRET);
+    vi.stubEnv("WHOP_API_KEY", "");
+    vi.stubEnv("NEXT_PUBLIC_WHOP_APP_ID", "");
+    expect(() => requireServerEnv(["WHOP_API_KEY"])).toThrow(EnvError);
+    const { d } = deps({ getVerifier: whopWebhookVerifier });
     const res = await handleWhopWebhook(signedRequest({ type: "payment.succeeded" }), d);
     expect(res.status).toBe(200);
+  });
+
+  it("uses the cf-ray header as the request id", async () => {
+    const { d } = deps();
+    const req = new Request("https://app.test/api/v1/webhooks/whop", { method: "POST", body: "{}", headers: { "cf-ray": "8abc123-LAX" } });
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const res = await handleWhopWebhook(req, d);
+    expect(res.headers.get("x-request-id")).toBe("req_8abc123-LAX");
+    expect(console.warn).toHaveBeenCalledWith(
+      "[whop webhook] signature verification failed",
+      expect.objectContaining({ requestId: "req_8abc123-LAX", hasSignature: false }),
+    );
   });
 
   it("returns 401 invalid_signature for a bad or missing signature", async () => {

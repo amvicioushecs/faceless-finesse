@@ -20,6 +20,7 @@ export const ACCESS_TTL_MS = 5 * 60 * 1000;
  * oldest entry is evicted past `maxEntries`. Swap for Workers KV in production.
  */
 export function memoryAccessCache(now: () => number = Date.now, maxEntries = 1000): AccessCache {
+  if (!Number.isInteger(maxEntries) || maxEntries < 1) throw new RangeError("maxEntries must be a positive integer");
   const store = new Map<string, { value: AccessResult; expiresAt: number }>();
   const sweep = () => {
     const t = now();

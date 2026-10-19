@@ -57,6 +57,10 @@ describe("Whop access checks", () => {
     expect(await cache.get("f")).toEqual(customer);
   });
 
+  it("rejects a non-positive capacity", () => {
+    expect(() => memoryAccessCache(Date.now, 0)).toThrow(RangeError);
+  });
+
   it("members need access; the owner dashboard needs admin", () => {
     expect(isAllowed(customer, "member")).toBe(true);
     expect(isAllowed({ hasAccess: true, accessLevel: "admin" }, "member")).toBe(true);

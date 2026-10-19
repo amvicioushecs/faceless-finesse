@@ -1,4 +1,4 @@
-import { apiError } from "../api/errors";
+import { apiError, newRequestId } from "../api/errors";
 import { EnvError } from "../env";
 
 export type WhopWebhookEvent = { type: string; data?: unknown; id?: string };
@@ -18,11 +18,15 @@ export type WhopWebhookDeps = {
  * - 200: verified; processing continues after the response.
  */
 export async function handleWhopWebhook(request: Request, deps: WhopWebhookDeps): Promise<Response> {
+  const requestId = newRequestId(request.headers);
   let verifier: ReturnType<WhopWebhookDeps["getVerifier"]>;
   try {
     verifier = deps.getVerifier();
   } catch (err) {
-    if (err instanceof EnvError) return apiError(503, "not_configured", "Webhook verification is not configured");
+    if (err instanceof EnvError) {
+      console.error("[whop webhook] not configured", { requestId, issues: err.issues });
+      return apiError(503, "not_configured", "Webhook verification is not configured", null, requestId);
+    }
     throw err;
   }
 
@@ -30,8 +34,14 @@ export async function handleWhopWebhook(request: Request, deps: WhopWebhookDeps)
   let event: WhopWebhookEvent;
   try {
     event = verifier.webhooks.unwrap(body, { headers: Object.fromEntries(request.headers) }) as WhopWebhookEvent;
-  } catch {
-    return apiError(401, "invalid_signature", "Webhook signature verification failed");
+  } catch (err) {
+    // Log the reason (never the secret or body) so a wrong/mis-encoded secret is visible.
+    console.warn("[whop webhook] signature verification failed", {
+      requestId,
+      reason: err instanceof Error ? err.message : String(err),
+      hasSignature: request.headers.has("webhook-signature"),
+    });
+    return apiError(401, "invalid_signature", "Webhook signature verification failed", null, requestId);
   }
 
   deps.schedule(() => deps.onEvent(event));

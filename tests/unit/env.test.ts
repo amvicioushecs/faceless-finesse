@@ -46,6 +46,17 @@ describe("env validation", () => {
     expect(() => requireServerEnv(["NEXT_PUBLIC_WHOP_APP_ID"], { NEXT_PUBLIC_WHOP_APP_ID: "biz_1" })).toThrow(EnvError);
   });
 
+  it("requireServerEnv reports missing and invalid keys together", () => {
+    try {
+      requireServerEnv(["WHOP_API_KEY", "CRON_SECRET"], { CRON_SECRET: "short" });
+      expect.unreachable();
+    } catch (err) {
+      expect(err).toBeInstanceOf(EnvError);
+      expect((err as EnvError).message).toMatch(/Missing required environment variables: WHOP_API_KEY\./);
+      expect((err as EnvError).message).toMatch(/CRON_SECRET: must be at least 32 characters/);
+    }
+  });
+
   it("accepts bare and display-name sender addresses for EMAIL_FROM", () => {
     expect(parseServerEnv({ EMAIL_FROM: "support@example.com" }).EMAIL_FROM).toBe("support@example.com");
     expect(parseServerEnv({ EMAIL_FROM: "Faceless Finesse <support@example.com>" }).EMAIL_FROM).toBe(
