@@ -24,6 +24,9 @@ const SUPABASE_SHIM = `
 
 const A = "00000000-0000-4000-8000-00000000000a";
 const B = "00000000-0000-4000-8000-00000000000b";
+const B_NICHE = "00000000-0000-4000-8000-0000000000b1";
+const B_IDEA = "00000000-0000-4000-8000-0000000000b2";
+const B_POST = "00000000-0000-4000-8000-0000000000b3";
 
 let db: PGlite;
 
@@ -56,6 +59,12 @@ beforeAll(async () => {
         select id, owner_id, 'youtube', 'chan_' || name, 'ciphertext' from public.workspaces;
       insert into public.usage_events (owner_id, provider, kind, units, cost_micro)
         values ('${A}', 'treg', 'keyword_volume', 1, 1000);
+      insert into public.niches (id, workspace_id, owner_id, name, level)
+        select '${B_NICHE}', id, owner_id, 'B niche', 'niche' from public.workspaces where owner_id = '${B}';
+      insert into public.ideas (id, workspace_id, owner_id, niche_id, title)
+        select '${B_IDEA}', id, owner_id, '${B_NICHE}', 'B idea' from public.workspaces where owner_id = '${B}';
+      insert into public.posts (id, workspace_id, owner_id, format)
+        select '${B_POST}', id, owner_id, 'text' from public.workspaces where owner_id = '${B}';
     `),
   );
 }, 60_000);
@@ -79,7 +88,7 @@ describe("RLS", () => {
   });
 
   it("anonymous requests see nothing", async () => {
-    await db.exec("set role anon;");
+    await db.exec("set role anon; select set_config('request.jwt.claim.sub', '', false);");
     try {
       const { rows } = await db.query("select * from public.workspaces");
       expect(rows).toHaveLength(0);
@@ -111,6 +120,8 @@ describe("RLS", () => {
 
   it("encrypted social tokens are not readable with user credentials", async () => {
     await expect(as(A, () => db.query("select access_token_enc from public.social_accounts"))).rejects.toThrow(/permission denied/);
+    await expect(as(A, () => db.query("select refresh_token_enc from public.social_accounts"))).rejects.toThrow(/permission denied/);
+    await expect(as(A, () => db.query("select * from public.social_accounts"))).rejects.toThrow(/permission denied/);
     const { rows } = await as(A, () => db.query<{ platform: string }>("select platform from public.social_accounts"));
     expect(rows).toEqual([{ platform: "youtube" }]);
   });
@@ -126,6 +137,60 @@ describe("RLS", () => {
     await expect(
       as(A, () => db.query(`insert into public.memberships (owner_id, whop_membership_id, plan_id, tier, status) values ($1, 'mem', 'plan', 'pro', 'active')`, [A])),
     ).rejects.toThrow(/row-level security/);
+  });
+
+  it("users cannot move their own rows into someone else's workspace", async () => {
+    const wsB = await wsOf(B);
+    await expect(
+      as(A, () => db.query(`update public.niches set workspace_id = $1 where name = 'Home workouts'`, [wsB])),
+    ).rejects.toThrow(/row-level security|foreign key/);
+    await expect(
+      as(A, () => db.query(`update public.niches set owner_id = $1 where name = 'Home workouts'`, [B])),
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it("child rows cannot reference another owner's parent rows", async () => {
+    const wsA = await wsOf(A);
+    const cases: Array<[string, unknown[]]> = [
+      [`insert into public.ideas (workspace_id, owner_id, niche_id, title) values ($1, $2, $3, 'steal')`, [wsA, A, B_NICHE]],
+      [`insert into public.niches (workspace_id, owner_id, parent_id, name, level) values ($1, $2, $3, 'child', 'micro')`, [wsA, A, B_NICHE]],
+      [`insert into public.niche_keywords (niche_id, owner_id, keyword) values ($1, $2, 'kw')`, [B_NICHE, A]],
+      [`insert into public.scripts (idea_id, owner_id, hook, body) values ($1, $2, 'h', 'b')`, [B_IDEA, A]],
+      [`insert into public.calendar_entries (post_id, owner_id, scheduled_at, platform) values ($1, $2, now(), 'x')`, [B_POST, A]],
+    ];
+    for (const [sql, params] of cases) {
+      await expect(as(A, () => db.query(sql, params)), sql).rejects.toThrow(/foreign key/);
+    }
+    // Even the service role cannot create a cross-owner link.
+    await expect(
+      as("service", () =>
+        db.query(`insert into public.calendar_entries (post_id, owner_id, scheduled_at, platform) values ($1, $2, now(), 'x')`, [B_POST, A]),
+      ),
+    ).rejects.toThrow(/foreign key/);
+  });
+
+  it("deleting a niche clears idea.niche_id but keeps the owner", async () => {
+    const wsB = await wsOf(B);
+    await as(B, () =>
+      db.query(`insert into public.niches (id, workspace_id, owner_id, name, level) values ('00000000-0000-4000-8000-0000000000b9', $1, $2, 'tmp', 'niche')`, [wsB, B]),
+    );
+    await as(B, () => db.query(`update public.ideas set niche_id = '00000000-0000-4000-8000-0000000000b9' where id = $1`, [B_IDEA]));
+    await as(B, () => db.query(`delete from public.niches where id = '00000000-0000-4000-8000-0000000000b9'`));
+    const { rows } = await as(B, () => db.query<{ niche_id: string | null; owner_id: string }>(`select niche_id, owner_id from public.ideas where id = $1`, [B_IDEA]));
+    expect(rows).toEqual([{ niche_id: null, owner_id: B }]);
+  });
+
+  it("users can edit profile fields but not their Whop identity", async () => {
+    const { rows } = await as(A, () =>
+      db.query<{ name: string }>(`update public.users set name = 'Hector', timezone = 'America/Los_Angeles' where id = $1 returning name`, [A]),
+    );
+    expect(rows).toEqual([{ name: "Hector" }]);
+    await expect(as(A, () => db.query(`update public.users set whop_user_id = 'user_B2' where id = $1`, [A]))).rejects.toThrow(/permission denied/);
+    await expect(as(A, () => db.query(`update public.users set email = 'x@example.com' where id = $1`, [A]))).rejects.toThrow(/permission denied/);
+    await expect(as(A, () => db.query(`insert into public.users (whop_user_id) values ('user_new')`))).rejects.toThrow(/permission denied/);
+    // B's row is untouched by A's update attempts.
+    const { rows: b } = await as("service", () => db.query<{ name: string | null }>(`select name from public.users where id = $1`, [B]));
+    expect(b).toEqual([{ name: null }]);
   });
 
   it("enables RLS on every public table", async () => {

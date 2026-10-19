@@ -75,7 +75,7 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 create table public.onboarding_profiles (
-  workspace_id uuid primary key references public.workspaces (id) on delete cascade,
+  workspace_id uuid primary key,
   owner_id uuid not null references public.users (id) on delete cascade,
   goals text[] not null default '{}',
   experience text,
@@ -87,9 +87,9 @@ create table public.onboarding_profiles (
 
 create table public.niches (
   id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references public.workspaces (id) on delete cascade,
+  workspace_id uuid not null,
   owner_id uuid not null references public.users (id) on delete cascade,
-  parent_id uuid references public.niches (id) on delete cascade,
+  parent_id uuid,
   name text not null,
   level public.niche_level not null,
   monthly_volume integer,
@@ -103,7 +103,7 @@ create table public.niches (
 
 create table public.niche_keywords (
   id uuid primary key default gen_random_uuid(),
-  niche_id uuid not null references public.niches (id) on delete cascade,
+  niche_id uuid not null,
   owner_id uuid not null references public.users (id) on delete cascade,
   keyword text not null,
   volume integer,
@@ -114,7 +114,7 @@ create table public.niche_keywords (
 
 create table public.offers (
   id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references public.workspaces (id) on delete cascade,
+  workspace_id uuid not null,
   owner_id uuid not null references public.users (id) on delete cascade,
   problem text,
   audience text,
@@ -128,7 +128,7 @@ create table public.offers (
 );
 
 create table public.brand_kits (
-  workspace_id uuid primary key references public.workspaces (id) on delete cascade,
+  workspace_id uuid primary key,
   owner_id uuid not null references public.users (id) on delete cascade,
   voice text,
   colors jsonb not null default '{}',
@@ -139,9 +139,9 @@ create table public.brand_kits (
 
 create table public.ideas (
   id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references public.workspaces (id) on delete cascade,
+  workspace_id uuid not null,
   owner_id uuid not null references public.users (id) on delete cascade,
-  niche_id uuid references public.niches (id) on delete set null,
+  niche_id uuid,
   title text not null,
   hook text,
   angle text,
@@ -152,7 +152,7 @@ create table public.ideas (
 
 create table public.scripts (
   id uuid primary key default gen_random_uuid(),
-  idea_id uuid not null references public.ideas (id) on delete cascade,
+  idea_id uuid not null,
   owner_id uuid not null references public.users (id) on delete cascade,
   hook text not null,
   body text not null,
@@ -164,11 +164,11 @@ create table public.scripts (
 
 create table public.posts (
   id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references public.workspaces (id) on delete cascade,
+  workspace_id uuid not null,
   owner_id uuid not null references public.users (id) on delete cascade,
   format public.post_format not null,
   caption text,
-  script_id uuid references public.scripts (id) on delete set null,
+  script_id uuid,
   media_paths text[] not null default '{}',
   status public.post_status not null default 'draft',
   goal public.post_goal,
@@ -178,7 +178,7 @@ create table public.posts (
 
 create table public.calendar_entries (
   id uuid primary key default gen_random_uuid(),
-  post_id uuid not null references public.posts (id) on delete cascade,
+  post_id uuid not null,
   owner_id uuid not null references public.users (id) on delete cascade,
   scheduled_at timestamptz not null,
   platform public.social_platform not null,
@@ -187,7 +187,7 @@ create table public.calendar_entries (
 
 create table public.monetization_plans (
   id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references public.workspaces (id) on delete cascade,
+  workspace_id uuid not null,
   owner_id uuid not null references public.users (id) on delete cascade,
   steps jsonb not null default '[]',
   ctas jsonb not null default '[]',
@@ -195,7 +195,7 @@ create table public.monetization_plans (
 );
 
 create table public.autopilot_settings (
-  workspace_id uuid primary key references public.workspaces (id) on delete cascade,
+  workspace_id uuid primary key,
   owner_id uuid not null references public.users (id) on delete cascade,
   run_time_local time not null default '07:00',
   timezone text not null default 'UTC',
@@ -207,7 +207,7 @@ create table public.autopilot_settings (
 
 create table public.social_accounts (
   id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references public.workspaces (id) on delete cascade,
+  workspace_id uuid not null,
   owner_id uuid not null references public.users (id) on delete cascade,
   platform public.social_platform not null,
   external_id text not null,
@@ -224,7 +224,7 @@ create table public.social_accounts (
 
 create table public.render_jobs (
   id uuid primary key default gen_random_uuid(),
-  post_id uuid not null references public.posts (id) on delete cascade,
+  post_id uuid not null,
   owner_id uuid not null references public.users (id) on delete cascade,
   kind public.render_kind not null,
   status public.job_status not null default 'queued',
@@ -237,9 +237,9 @@ create table public.render_jobs (
 
 create table public.publish_jobs (
   id uuid primary key default gen_random_uuid(),
-  post_id uuid not null references public.posts (id) on delete cascade,
+  post_id uuid not null,
   owner_id uuid not null references public.users (id) on delete cascade,
-  social_account_id uuid not null references public.social_accounts (id) on delete cascade,
+  social_account_id uuid not null,
   status public.job_status not null default 'queued',
   external_post_id text,
   error text,
@@ -267,6 +267,50 @@ create table public.usage_budgets (
 );
 
 -- ---------------------------------------------------------------------------
+-- Owner-consistent foreign keys
+-- Every reference to a parent row carries owner_id too, so a row can only point
+-- at a parent with the same owner (user A can't attach a script to user B's
+-- idea or schedule user B's post). FK checks run regardless of RLS.
+-- ---------------------------------------------------------------------------
+alter table public.workspaces add constraint workspaces_id_owner_key unique (id, owner_id);
+alter table public.niches add constraint niches_id_owner_key unique (id, owner_id);
+alter table public.ideas add constraint ideas_id_owner_key unique (id, owner_id);
+alter table public.scripts add constraint scripts_id_owner_key unique (id, owner_id);
+alter table public.posts add constraint posts_id_owner_key unique (id, owner_id);
+alter table public.social_accounts add constraint social_accounts_id_owner_key unique (id, owner_id);
+
+do $$
+declare t text;
+begin
+  foreach t in array array['onboarding_profiles','niches','offers','brand_kits','ideas','posts',
+                           'monetization_plans','autopilot_settings','social_accounts']
+  loop
+    execute format('alter table public.%I add constraint %I foreign key (workspace_id, owner_id)
+                    references public.workspaces (id, owner_id) on delete cascade', t, t || '_workspace_owner_fkey');
+  end loop;
+end $$;
+
+alter table public.niches add constraint niches_parent_owner_fkey
+  foreign key (parent_id, owner_id) references public.niches (id, owner_id) on delete cascade;
+alter table public.niche_keywords add constraint niche_keywords_niche_owner_fkey
+  foreign key (niche_id, owner_id) references public.niches (id, owner_id) on delete cascade;
+-- Column-list SET NULL (PG15+) clears only the reference, never owner_id.
+alter table public.ideas add constraint ideas_niche_owner_fkey
+  foreign key (niche_id, owner_id) references public.niches (id, owner_id) on delete set null (niche_id);
+alter table public.scripts add constraint scripts_idea_owner_fkey
+  foreign key (idea_id, owner_id) references public.ideas (id, owner_id) on delete cascade;
+alter table public.posts add constraint posts_script_owner_fkey
+  foreign key (script_id, owner_id) references public.scripts (id, owner_id) on delete set null (script_id);
+alter table public.calendar_entries add constraint calendar_entries_post_owner_fkey
+  foreign key (post_id, owner_id) references public.posts (id, owner_id) on delete cascade;
+alter table public.render_jobs add constraint render_jobs_post_owner_fkey
+  foreign key (post_id, owner_id) references public.posts (id, owner_id) on delete cascade;
+alter table public.publish_jobs add constraint publish_jobs_post_owner_fkey
+  foreign key (post_id, owner_id) references public.posts (id, owner_id) on delete cascade;
+alter table public.publish_jobs add constraint publish_jobs_social_account_owner_fkey
+  foreign key (social_account_id, owner_id) references public.social_accounts (id, owner_id) on delete cascade;
+
+-- ---------------------------------------------------------------------------
 -- Indexes (database-schema.md)
 -- ---------------------------------------------------------------------------
 create index niches_workspace_ease_idx on public.niches (workspace_id, ease_to_rank_score desc);
@@ -278,8 +322,28 @@ create index publish_jobs_status_created_idx on public.publish_jobs (status, cre
 create index render_jobs_status_idx on public.render_jobs (status);
 create index usage_events_owner_created_idx on public.usage_events (owner_id, created_at);
 create index social_accounts_workspace_platform_idx on public.social_accounts (workspace_id, platform);
-create index memberships_owner_idx on public.memberships (owner_id);
-create index workspaces_owner_idx on public.workspaces (owner_id);
+-- owner_id on every table (RLS predicates) and FK columns used by cascades.
+-- Composite (x_id, owner_id) FKs are covered by indexes leading with x_id.
+do $$
+declare t text;
+begin
+  foreach t in array array['memberships','workspaces','onboarding_profiles','niches','niche_keywords','offers',
+                           'brand_kits','ideas','scripts','posts','calendar_entries','monetization_plans',
+                           'autopilot_settings','social_accounts','render_jobs','publish_jobs']
+  loop
+    execute format('create index %I on public.%I (owner_id)', t || '_owner_idx', t);
+  end loop;
+end $$;
+create index offers_workspace_idx on public.offers (workspace_id);
+create index ideas_workspace_idx on public.ideas (workspace_id);
+create index ideas_niche_idx on public.ideas (niche_id);
+create index scripts_idea_idx on public.scripts (idea_id);
+create index posts_script_idx on public.posts (script_id);
+create index calendar_entries_post_idx on public.calendar_entries (post_id);
+create index monetization_plans_workspace_idx on public.monetization_plans (workspace_id);
+create index render_jobs_post_idx on public.render_jobs (post_id);
+create index publish_jobs_post_idx on public.publish_jobs (post_id);
+create index publish_jobs_social_account_idx on public.publish_jobs (social_account_id);
 
 -- updated_at triggers
 do $$
@@ -301,6 +365,10 @@ create policy users_select_self on public.users for select to authenticated usin
 create policy users_update_self on public.users for update to authenticated
   using (id = auth.uid()) with check (id = auth.uid());
 -- Inserts happen server-side (service role) on first Whop visit.
+-- The Whop identity mapping (whop_user_id) and Whop-sourced email are
+-- server-only: users may edit profile fields, nothing else.
+revoke insert, update, delete on public.users from anon, authenticated;
+grant update (name, timezone) on public.users to authenticated;
 
 -- Server-written tables: owners can read their rows; only the service role writes.
 alter table public.memberships enable row level security;
